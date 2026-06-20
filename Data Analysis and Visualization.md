@@ -1,338 +1,374 @@
-## Project Overview
+## Pandas in Cybersecurity
 
-This project is a **basic cybersecurity log analysis system** built using **Python, Pandas, and Matplotlib**. It analyzes login logs to detect suspicious activities such as repeated login attempts, multiple failed logins, and unusual login times.
+### What is Pandas?
 
-Security analysts use similar techniques to monitor system logs and identify possible threats like **brute-force attacks** and unauthorized access attempts.
+Pandas is a Python library used for data manipulation and analysis. It provides two main data structures:
 
-## Project Objective
+- **Series** – a one-dimensional labeled array
+- **DataFrame** – a two-dimensional labeled table (like a spreadsheet or SQL table)
 
-The main objectives of this project are:
+It's built on top of NumPy and is the go-to tool for handling structured/tabular data in Python.
 
-- Load security login data from a CSV file.
-- Clean and preprocess the data.
-- Remove duplicate log entries.
-- Handle missing information.
-- Filter important security-related fields.
-- Identify failed login attempts.
-- Analyze user activity based on IP addresses and time.
-- Create visual graphs to understand security patterns.
-- Generate a summary of possible security threats.
+### Why Pandas Matters in Cybersecurity
 
-## Technologies Used
+Security work generates huge volumes of structured data — logs, packet captures, alerts, threat intel feeds. Pandas helps because:
 
-### Python
+1. **Log Analysis** – Parse and analyze firewall logs, system logs (syslog), web server logs, and authentication logs to spot anomalies.
+2. **Handling Large Datasets** – Efficiently process thousands/millions of log entries that would be impractical to review manually.
+3. **Pattern & Anomaly Detection** – Group, filter, and aggregate data to find unusual login times, repeated failed attempts, traffic spikes, etc.
+4. **Threat Intelligence Correlation** – Merge/join data from multiple sources (IP blacklists, malware hashes, indicators of compromise) to cross-reference events.
+5. **Incident Response** – Quickly filter timelines of events during forensic investigation.
+6. **Data Cleaning** – Normalize messy, inconsistent log formats from different devices/sources into a clean, analyzable structure.
+7. **Visualization Prep** – Pandas integrates with Matplotlib/Seaborn to turn security data into charts (attack trends, geo-distribution of IPs, etc.).
+8. **Automation** – Build repeatable scripts/pipelines for daily log review instead of manual checking.
 
-The main programming language used to process and analyze the security data.
+### Common Pandas Functions Used in Security Analysis
 
-### Pandas
+### Reading Data
 
-Used for:
+python
 
-- Reading CSV log files.
-- Cleaning data.
-- Removing duplicate records.
-- Handling missing values.
-- Filtering and analyzing log information.
+`pd.read_csv("logs.csv")          # Read CSV log file
+pd.read_json("alerts.json")      # Read JSON formatted logs
+pd.read_excel("report.xlsx")     # Read Excel report`
 
-### Matplotlib
+### Inspecting Data
 
-Used for creating graphical visualizations such as:
+python
 
-- Bar charts
-- Pie charts
-- Line graphs
+`df.head()           # First 5 rows
+df.tail()           # Last 5 rows
+df.info()           # Column types, non-null counts
+df.describe()       # Statistical summary
+df.shape            # (rows, columns)
+df.columns          # List column names`
 
-These visualizations make it easier to identify suspicious behavior.
+### Filtering & Searching (key for threat hunting)
 
-## Project Workflow
+python
+
+`df[df['status'] == 'failed']                       # Filter failed logins
+df[df['src_ip'] == '192.168.1.10']                  # Filter by IP
+df[df['bytes_sent'] > 1000000]                      # Find large data transfers
+df[df['username'].str.contains('admin')]            # Pattern match`
+
+### Aggregation & Grouping (detecting brute force, beaconing, etc.)
+
+python
+
+`df.groupby('src_ip').size()                         # Count events per IP
+df.groupby('username')['status'].value_counts()     # Login attempts per user
+df['src_ip'].value_counts().head(10)                 # Top 10 most active IPs
+df.groupby('src_ip')['timestamp'].count()             # Frequency analysis`
+
+### Sorting
+
+python
+
+`df.sort_values('timestamp', ascending=False)        # Most recent events first
+df.sort_values('bytes_sent', ascending=False)        # Largest transfers first`
+
+### Merging / Joining (correlating with threat intel)
+
+python
+
+`pd.merge(logs_df, blacklist_df, on='ip', how='inner')  # Match logs against IOC list
+pd.concat([log1_df, log2_df])                            # Combine multiple log sources`
+
+### Time-based Analysis (timeline reconstruction)
+
+python
+
+`df['timestamp'] = pd.to_datetime(df['timestamp'])
+df.set_index('timestamp', inplace=True)
+df.resample('1H').count()        # Events per hour
+df.between_time('00:00', '05:00')  # Off-hour activity`
+
+### Cleaning Data
+
+python
+
+`df.dropna()                       # Remove missing values
+df.fillna('unknown')              # Fill missing values
+df.drop_duplicates()              # Remove duplicate log entries
+df.rename(columns={'src': 'source_ip'})  # Standardize column names`
+
+### Exporting Results
+
+python
+
+`df.to_csv("suspicious_activity.csv", index=False)
+df.to_excel("incident_report.xlsx")`
+
+### Example: Detecting Brute Force Login Attempts
+
+python
+
+`import pandas as pd
+
+df = pd.read_csv("auth.log.csv")
+failed = df[df['status'] == 'failed']
+
+# Find IPs with more than 10 failed attempts
+suspicious = failed.groupby('src_ip').size()
+suspicious = suspicious[suspicious > 10]
+
+print(suspicious)`
+
+Cleaning the datas using pandas:
+
+```python
+import pandas as pd
+
+df = pd.read_csv("Z:/brocamp/week 16 python/Visualization/login_logs.csv")
+
+print("\nOriginal Dataset Shape:")
+print(df.shape)
+
+df = df.replace(r'^\s*$', pd.NA, regex=True)
+
+print("\nMissing Values Count in Each Column:")
+print(df.isnull().sum())
+
+print("\nDuplicate Records Count:")
+print(df.duplicated().sum())
+
+df = df.drop_duplicates()
+
+print("\nDataset Shape After Removing Duplicates:")
+print(df.shape)
+
+df["username"] = df["username"].fillna("Unknown")
+df["source_ip"] = df["source_ip"].fillna("0.0.0.0")
+df["destination_ip"] = df["destination_ip"].fillna("0.0.0.0")
+df["location"] = df["location"].fillna("Unknown")
+df["status"] = df["status"].fillna("Unknown")
+
+print("\nMissing Values After Cleaning:")
+print(df.isnull().sum())
+
+print("\nCleaned Security Logs:")
+print(df.head(10))
+
+df.to_csv("cleaned_security_logs.csv", index=False)
+
+print("\nCleaned data has been saved as 'cleaned_security_logs.csv'")
 
 ```
-              Login Logs (CSV)
-                      |
-                      ↓
-             Load Data using Pandas
-                      |
-                      ↓
-             Data Cleaning
-        (Remove duplicates & handle missing data)
-                      |
-                      ↓
-              Filter Important Fields
-                      |
-                      ↓
-              Security Analysis
-        (Failed logs, IP activity, timing)
-                      |
-                      ↓
-            Visualization with Matplotlib
-                      |
-                      ↓
-          Generate Security Summary Report
+
+output:
+
+```python
+Original Dataset Shape:
+(200, 7)
+
+Missing Values Count in Each Column:
+timestamp         0
+username          6
+source_ip         5
+destination_ip    5
+status            1
+event_type        0
+location          4
+dtype: int64
+
+Duplicate Records Count:
+5
+
+Dataset Shape After Removing Duplicates:
+(195, 7)
+
+Missing Values After Cleaning:
+timestamp         0
+username          0
+source_ip         0
+destination_ip    0
+status            0
+event_type        0
+location          0
+dtype: int64
+
+Cleaned Security Logs:
+          timestamp username     source_ip destination_ip   status   event_type location
+0  2026-06-20 08:00    admin  192.168.1.10      10.0.0.10  Success        Login    India
+1  2026-06-20 08:02    admin  192.168.1.10      10.0.0.10   Failed        Login    India
+2  2026-06-20 08:03    admin  192.168.1.10      10.0.0.10   Failed        Login    India
+3  2026-06-20 08:04    admin  192.168.1.10      10.0.0.10   Failed        Login    India
+4  2026-06-20 08:10    user1  192.168.1.20      10.0.0.11  Success          VPN    India
+5  2026-06-20 08:15    user2  192.168.1.21      10.0.0.12  Success  File Access      USA
+6  2026-06-20 08:18    user3  192.168.1.22      10.0.0.13   Failed          SSH       UK
+7  2026-06-20 08:20    user3  192.168.1.22      10.0.0.13   Failed          SSH       UK
+8  2026-06-20 08:21    user3  192.168.1.22      10.0.0.13   Failed          SSH       UK
+9  2026-06-20 08:25    user4  192.168.1.23      10.0.0.14  Success          RDP  Germany
+
+Cleaned data has been saved as 'cleaned_security_logs.csv'
 ```
 
-## Data Visualization
-
-The project creates three visualizations:
-
-### 1. Bar Chart – Login Attempts Per IP
-
-Shows which IP addresses generated the most login requests.
-
-**Use:** Detect suspicious or highly active IP addresses.
-
----
-
-### 2. Pie Chart – Success vs Failed Logins
-
-Shows the percentage of successful and unsuccessful login attempts.
-
-**Use:** Understand the overall security health of the system.
-
----
-
-### 3. Line Chart – Login Activity by Hour
-
-Shows how login activity changes throughout the day.
-
-**Use:** Detect unusual spikes and attack timings.
+Visualising the datas using Matplotlib:
 
 ```python
 import pandas as pd
 import matplotlib.pyplot as plt
 
-print("=" * 60)
-print("        SECURITY LOG ANALYSIS USING PANDAS")
-print("=" * 60)
+df = pd.read_csv("cleaned_security_logs.csv")
 
-data = pd.read_csv(
-    r"Z:\brocamp\week 16 python\Visualization\login_logs.csv"
-)
-print("\nOriginal Dataset:")
-print(data)
+df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-print("\nTotal records before cleaning:", len(data))
+failed_logs = df[df["status"] == "Failed"]
 
-data = data.drop_duplicates()
+while True:
 
-data["ip_address"] = data["ip_address"].fillna("Unknown")
+    print("\n select an option:")
+    print("1. Failed Login Attempts by Hour")
+    print("2. Top Source IPs with Failed Attempts")
+    print("3. Most Targeted Destination IPs")
+    print("4. Failed Attacks by Event Type")
+    print("5. Failed Attempts by Country")
+    print("6. Exit")
 
-print("\nTotal records after removing duplicates:", len(data))
+    choice = input("\nEnter your choice: ")
 
-print("\nMissing Values:")
-print(data.isnull().sum())
+    if choice == "1":
 
-security_data = data[
-    ["timestamp", "username", "ip_address", "status"]
-]
+        failed_logs["hour"] = failed_logs["timestamp"].dt.hour
 
-print("\nCleaned Security Logs:")
-print(security_data)
+        hourly_attacks = (
+            failed_logs["hour"]
+            .value_counts()
+            .sort_index()
+        )
 
-failed_logins = security_data[
-    security_data["status"] == "Failed"
-]
+        plt.figure(figsize=(10, 5))
+        hourly_attacks.plot(
+            kind="line",
+            marker="o"
+        )
 
-print("\nFailed Login Attempts:")
-print(failed_logins)
+        plt.title("Failed Login Attempts by Hour")
+        plt.xlabel("Hour of the Day")
+        plt.ylabel("Number of Failed Attempts")
+        plt.grid(True)
+        plt.show()
 
-print("\nTotal Failed Attempts:", len(failed_logins))
+    elif choice == "2":
 
-ip_attempts = security_data["ip_address"].value_counts()
+        top_attackers = (
+            failed_logs["source_ip"]
+            .value_counts()
+            .head(10)
+        )
 
-plt.figure(figsize=(10, 5))
-ip_attempts.plot(
-    kind="bar",
-    color="skyblue"
-)
+        plt.figure(figsize=(10, 5))
+        top_attackers.plot(
+            kind="bar"
+        )
 
-plt.title("Login Attempts Per IP Address")
-plt.xlabel("IP Address")
-plt.ylabel("Number of Attempts")
-plt.xticks(rotation=45)
-plt.grid(axis="y")
+        plt.title("Top Source IPs with Failed Attempts")
+        plt.xlabel("Source IP Address")
+        plt.ylabel("Number of Failed Attempts")
+        plt.xticks(rotation=45)
+        plt.grid(axis="y")
+        plt.show()
 
-plt.tight_layout()
-plt.show()
+    elif choice == "3":
 
-login_status = security_data["status"].value_counts()
+        targeted_servers = (
+            failed_logs["destination_ip"]
+            .value_counts()
+            .head(10)
+        )
 
-plt.figure(figsize=(6, 6))
-login_status.plot(
-    kind="pie",
-    autopct="%1.1f%%",
-    colors=["lightgreen", "salmon"]
-)
+        plt.figure(figsize=(10, 5))
+        targeted_servers.plot(
+            kind="bar"
+        )
 
-plt.title("Login Success vs Failed Attempts")
-plt.ylabel("")
+        plt.title("Most Targeted Destination IPs")
+        plt.xlabel("Destination IP Address")
+        plt.ylabel("Number of Attack Attempts")
+        plt.xticks(rotation=45)
+        plt.grid(axis="y")
+        plt.show()
 
-plt.show()
+    elif choice == "4":
 
-security_data["timestamp"] = pd.to_datetime(
-    security_data["timestamp"]
-)
+        attack_types = (
+            failed_logs["event_type"]
+            .value_counts()
+        )
 
-security_data["hour"] = (
-    security_data["timestamp"].dt.hour
-)
+        plt.figure(figsize=(8, 5))
+        attack_types.plot(
+            kind="bar"
+        )
 
-hourly_activity = (
-    security_data["hour"]
-    .value_counts()
-    .sort_index()
-)
+        plt.title("Failed Attack Types")
+        plt.xlabel("Event Type")
+        plt.ylabel("Number of Failed Events")
+        plt.xticks(rotation=45)
+        plt.grid(axis="y")
+        plt.show()
 
-plt.figure(figsize=(10, 5))
-hourly_activity.plot(
-    kind="line",
-    marker="o",
-    linewidth=2,
-    color="red"
-)
+    elif choice == "5":
 
-plt.title("Login Activity by Hour")
-plt.xlabel("Hour of the Day")
-plt.ylabel("Number of Login Attempts")
-plt.grid(True)
+        attack_locations = (
+            failed_logs["location"]
+            .value_counts()
+        )
 
-plt.xticks(range(0, 24))
+        plt.figure(figsize=(8, 5))
+        attack_locations.plot(
+            kind="bar"
+        )
 
-plt.tight_layout()
-plt.show()
+        plt.title("Failed Attempts by Country")
+        plt.xlabel("Country")
+        plt.ylabel("Number of Failed Attempts")
+        plt.xticks(rotation=45)
+        plt.grid(axis="y")
+        plt.show()
 
-print("\n" + "=" * 60)
-print("              SECURITY ANALYSIS SUMMARY")
-print("=" * 60)
+    elif choice == "6":
 
-print("Most Active IP Address:")
-print(
-    ip_attempts.idxmax(),
-    "with",
-    ip_attempts.max(),
-    "attempts"
-)
+        print("Exiting Security Visualization Tool...")
+        break
 
-print("\nMost Common Login Status:")
-print(login_status.idxmax())
+    else:
 
-print("\nPeak Activity Hour:")
-print(
-    hourly_activity.idxmax(),
-    ":00 with",
-    hourly_activity.max(),
-    "attempts"
-)
-
-print("\nPossible Security Findings:")
-
-if ip_attempts.max() >= 3:
-    print("- High number of attempts from one IP. Possible brute-force attack.")
-
-if len(failed_logins) >= 5:
-    print("- Multiple failed login attempts detected.")
-
-if hourly_activity.idxmax() >= 22 or hourly_activity.idxmax() <= 5:
-    print("- Suspicious late-night login activity detected.")
-
-print("\nAnalysis Completed Successfully.")
+        print("Invalid choice! Please enter a number from 1 to 6.")
 ```
 
-OUTPUT:
+output:
 
 ```python
-============================================================
-        SECURITY LOG ANALYSIS USING PANDAS
-============================================================
+ select an option:
+1. Failed Login Attempts by Hour
+2. Top Source IPs with Failed Attempts
+3. Most Targeted Destination IPs
+4. Failed Attacks by Event Type
+5. Failed Attempts by Country
+6. Exit
 
-Original Dataset:
-           timestamp username    ip_address   status location
-0   2026-06-19 08:30    admin  192.168.1.10  Success    India
-1   2026-06-19 08:32    admin  192.168.1.10   Failed    India
-2   2026-06-19 08:33    admin  192.168.1.10   Failed    India
-3   2026-06-19 08:34    admin  192.168.1.10   Failed    India
-4   2026-06-19 09:00    user1  192.168.1.20  Success    India
-5   2026-06-19 09:10    user2  192.168.1.25   Failed      USA
-6   2026-06-19 09:15    user3  192.168.1.30  Success       UK
-7   2026-06-19 10:00    user4  192.168.1.50   Failed    India
-8   2026-06-19 10:05    user4  192.168.1.50   Failed    India
-9   2026-06-19 10:10    user4  192.168.1.50   Failed    India
-10  2026-06-19 11:00    user5           NaN  Success   Canada
-11  2026-06-19 23:30  unknown      10.0.0.5   Failed   Russia
-12  2026-06-19 23:35  unknown      10.0.0.5   Failed   Russia
-13  2026-06-19 23:40  unknown      10.0.0.5   Failed   Russia
-14  2026-06-19 23:45  unknown      10.0.0.5   Failed   Russia
-15  2026-06-19 23:45  unknown      10.0.0.5   Failed   Russia
-
-Total records before cleaning: 16
-
-Total records after removing duplicates: 15
-
-Missing Values:
-timestamp     0
-username      0
-ip_address    0
-status        0
-location      0
-dtype: int64
-
-Cleaned Security Logs:
-           timestamp username    ip_address   status
-0   2026-06-19 08:30    admin  192.168.1.10  Success
-1   2026-06-19 08:32    admin  192.168.1.10   Failed
-2   2026-06-19 08:33    admin  192.168.1.10   Failed
-3   2026-06-19 08:34    admin  192.168.1.10   Failed
-4   2026-06-19 09:00    user1  192.168.1.20  Success
-5   2026-06-19 09:10    user2  192.168.1.25   Failed
-6   2026-06-19 09:15    user3  192.168.1.30  Success
-7   2026-06-19 10:00    user4  192.168.1.50   Failed
-8   2026-06-19 10:05    user4  192.168.1.50   Failed
-9   2026-06-19 10:10    user4  192.168.1.50   Failed
-10  2026-06-19 11:00    user5       Unknown  Success
-11  2026-06-19 23:30  unknown      10.0.0.5   Failed
-12  2026-06-19 23:35  unknown      10.0.0.5   Failed
-13  2026-06-19 23:40  unknown      10.0.0.5   Failed
-14  2026-06-19 23:45  unknown      10.0.0.5   Failed
-
-Failed Login Attempts:
-           timestamp username    ip_address  status
-1   2026-06-19 08:32    admin  192.168.1.10  Failed
-2   2026-06-19 08:33    admin  192.168.1.10  Failed
-3   2026-06-19 08:34    admin  192.168.1.10  Failed
-5   2026-06-19 09:10    user2  192.168.1.25  Failed
-7   2026-06-19 10:00    user4  192.168.1.50  Failed
-8   2026-06-19 10:05    user4  192.168.1.50  Failed
-9   2026-06-19 10:10    user4  192.168.1.50  Failed
-11  2026-06-19 23:30  unknown      10.0.0.5  Failed
-12  2026-06-19 23:35  unknown      10.0.0.5  Failed
-13  2026-06-19 23:40  unknown      10.0.0.5  Failed
-14  2026-06-19 23:45  unknown      10.0.0.5  Failed
-
-Total Failed Attempts: 11
-
-============================================================
-              SECURITY ANALYSIS SUMMARY
-============================================================
-Most Active IP Address:
-192.168.1.10 with 4 attempts
-
-Most Common Login Status:
-Failed
-
-Peak Activity Hour:
-8 :00 with 4 attempts
-
-Possible Security Findings:
-- High number of attempts from one IP. Possible brute-force attack.
-- Multiple failed login attempts detected.
-
-Analysis Completed Successfully.
+Enter your choice: 1
 ```
+choice 1:
 
-[]()
+<img width="1245" height="700" alt="Screenshot 2026-06-20 103432" src="https://github.com/user-attachments/assets/af16c735-ff41-4464-8c8b-0d658cbcd22a" />
 
-<img width="1250" height="700" alt="Screenshot 2026-06-19 190330" src="https://github.com/user-attachments/assets/2f4aa871-2343-4fef-991c-64604f11641d" />
 
-<img width="747" height="830" alt="Screenshot 2026-06-19 190341" src="https://github.com/user-attachments/assets/e368e102-b86c-4557-9e2d-a039f5a346cc" />
+choice 2:
 
-<img width="1242" height="705" alt="Screenshot 2026-06-19 190354" src="https://github.com/user-attachments/assets/498465d7-2442-4731-8c14-a8b18c88d862" />
+<img width="1241" height="700" alt="Screenshot 2026-06-20 103558" src="https://github.com/user-attachments/assets/776cd10c-c9d8-41fc-966a-7e05b3fa64a6" />
 
+choice 3:
+
+<img width="1243" height="702" alt="Screenshot 2026-06-20 103641" src="https://github.com/user-attachments/assets/17c01faf-4ac4-4083-b20c-52be790060fa" />
+
+
+choice 4:
+
+<img width="992" height="707" alt="Screenshot 2026-06-20 103752" src="https://github.com/user-attachments/assets/91b7693a-b017-4c50-b3ce-d2e2b6409f0f" />
+
+choice 5:
+
+<img width="996" height="700" alt="Screenshot 2026-06-20 103857" src="https://github.com/user-attachments/assets/e521e1da-edf3-4f1f-9eb8-ebecad33bd3e" />
